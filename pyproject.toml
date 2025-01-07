@@ -3,12 +3,12 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-version = "0.0.1"
+version = "0.0.1a"
 name = "Frequensee"
 requires-python = ">= 3.8"
 dependencies = [
-    "matplotlib==3.9.3",
-    "soundfile==0.12.1"
+    "matplotlib>=3.9.3",
+    "soundfile>=0.12.1"
 ]
 authors = [
     {name = "Antonios Stefanos Tormpantonis", email = "antonistorb@yahoo.com"}

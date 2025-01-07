@@ -407,11 +407,6 @@ class AudioVisualizer():
 
             writer = FFMpegWriter(fps=self.config.framerate, extra_args=self.config.ffmpeg_options)
         else:
-            if Path(filepath).suffix == ".webm":
-                if self.config.ffmpeg_options is not None:
-                    self.config.ffmpeg_options = ["-c:v", "libvpx", "-pix_fmt", "yuva420p"] + self.config.ffmpeg_options
-                else:
-                    self.config.ffmpeg_options = ["-c:v", "libvpx", "-pix_fmt", "yuva420p"]
             writer = FFMpegWriterWithAudio(fps=self.config.framerate, audio_filepath=self.audio_path, extra_args=self.config.ffmpeg_options)
 
         return writer
