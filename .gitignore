@@ -1,0 +1,15 @@
+*.exe
+env
+dist
+.env
+__pycache__
+.vscode
+*.mp3
+*.wav
+*.mp4
+*.mkv
+*.gif
+*.webp
+*.json
+content
+!images/*.webp
