@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-version = "0.0.1a"
+version = "0.0.2"
 name = "Frequensee"
 requires-python = ">= 3.8"
 dependencies = [
