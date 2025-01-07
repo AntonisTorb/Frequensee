@@ -106,7 +106,7 @@ jobs:
 
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/frequensee-test
+      url: https://test.pypi.org/p/frequensee
 
     permissions:
       id-token: write

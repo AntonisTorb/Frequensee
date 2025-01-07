@@ -246,6 +246,6 @@ The only required flags are the input and output filepaths.
 
 ## TODO
 
-- Setup and test github workflow for auto `pypi` and `github` releases.
+- Modify workflow for `test.pypi` release to only run when there is a package version update.
 - Documentation.
 - Better exception handling.
