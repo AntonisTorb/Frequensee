@@ -4,11 +4,11 @@ A command line interface (`cli`) tool used to create animations based on audio f
 
 Bar animation|
 :-------------------------:
-![image](images/example_bars.webp) 
+![image](https://raw.githubusercontent.com/AntonisTorb/Frequensee/refs/heads/main/images/example_bars.webp) 
 
 FFT animation|
 :-------------------------:
-![image](images/example_fft.webp)
+![image](https://raw.githubusercontent.com/AntonisTorb/Frequensee/refs/heads/main/images/example_fft.webp)
 
 ## Contents
 - [Installation](#installation)
