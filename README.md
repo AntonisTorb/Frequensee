@@ -24,13 +24,13 @@ FFT animation|
 
 ## Installation
 
-You can install `frequensee` with pip through `PyPI` using the following command:
+`Frequensee` is released as a package on [PyPI](https://pypi.org/project/frequensee/), so you can install it with pip using the following command:
 
 ```
 pip install frequensee
 ```
 
-or by downloading the source code from this repository.
+or by downloading the source code from the [GitHub repository](https://github.com/AntonisTorb/Frequensee).
 
 ## Dependencies
 

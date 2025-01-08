@@ -1,3 +1,4 @@
+from __future__ import annotations
 from collections.abc import Callable
 from functools import partial
 import json
@@ -5,13 +6,13 @@ from math import ceil
 from pathlib import Path
 import shutil
 
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
 from matplotlib.patches import Rectangle
+import numpy as np
 import soundfile as sf
 
 from .config import Config

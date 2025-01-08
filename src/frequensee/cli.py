@@ -1,8 +1,10 @@
+from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from .config import Config
 from .audio_viz import AudioVisualizer
+from .config import Config
+
 
 def main_cli():
     '''Function to be called with the `frequensee` or `fqc` cli command created when installing as package.'''
