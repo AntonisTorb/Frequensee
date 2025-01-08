@@ -64,7 +64,7 @@ def main_cli():
     for part in output_path.parts[:-1]:
         Path(part).mkdir(exist_ok=True)
     
-    options: dict[str, str|int|float] = {   
+    options: dict[str, str|int|float|bool|None] = {   
         "framerate": args.framerate,
         "fft_window_sec": args.fft_window_sec,
         "bars": args.bars,

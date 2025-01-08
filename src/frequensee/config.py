@@ -4,7 +4,7 @@ import re
 
 class Config():
 
-    def __init__(self, options: dict[str, str|int|float|bool] = {}):
+    def __init__(self, options: dict[str, str|int|float|bool|None] = {}):
         '''
         Configuration Class containing data required for the `AudioVisualizer` class.
         An optional dictionary can be passed as initialization argument to modify the properties en masse.
@@ -43,7 +43,7 @@ class Config():
         # Figure backround colour as a string with format: "r,g,b,a"
         self.background: Iterable[float] = (0,0,0,0)
         # Additional options for FFMPEG
-        self.ffmpeg_options: list[str]|None = []
+        self.ffmpeg_options: list[str]|None = None
         # Colour for bottom of bar gradient
         self.bar_colour_bottom: Iterable[float] = (0, 0, 1)
         # Colour for top of bar gradient
@@ -70,8 +70,12 @@ class Config():
         if "max_frames_per_gif" in options.keys():
             self.max_frames_per_gif = options["max_frames_per_gif"]
         if "dpi" in options.keys():
+            if options["dpi"] <= 0:
+                raise ValueError("Error: dpi cannot be less or equal to 0.")
             self.dpi = options["dpi"]
-        if "width" in options.keys() and "height" in options.keys() :
+        if "width" in options.keys() and "height" in options.keys():
+            if options["width"] <= 0 or options["height"] <= 0:
+                raise ValueError("Error: Pixle dimensions cannot be less or equal to 0.")
             self.image_size_pix = (options["width"], options["height"])
         if "background" in options.keys():
             bg_match: re.Match = re.match(self.rgba_regex, options["background"])
@@ -91,13 +95,13 @@ class Config():
                 self.ffmpeg_options = [option.strip() for option in self.ffmpeg_options]
         if "bar_colour_bottom" in options.keys():
             bar_bottom_match: re.Match = re.match(self.rgba_regex, options["bar_colour_bottom"])
-            if bg_match is None:
+            if bar_bottom_match is None:
                 raise ValueError("Error: invalid `bar_colour_bottom` input.")
             rgb: tuple[str] = bar_bottom_match.groups()[:3]
             self.bar_colour_bottom = tuple([int(i) / 255 for i in rgb])
         if "bar_colour_top" in options.keys():
             bar_top_match: re.Match = re.match(self.rgba_regex, options["bar_colour_top"])
-            if bg_match is None:
+            if bar_top_match is None:
                 raise ValueError("Error: invalid `bar_colour_top` input.")
             rgb: tuple[str] = bar_top_match.groups()[:3]
             self.bar_colour_top = tuple([int(i) / 255 for i in rgb])

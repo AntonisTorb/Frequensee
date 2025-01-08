@@ -42,7 +42,7 @@ or by downloading the source code from the [GitHub repository](https://github.co
 
 The first two are installed automatically when installing `frequensee` through `PyPI`. You can also install them with pip using the `requirements.txt` file provided.
 
-As for `FFMPEG`, you can either compile the source code yourself, or use an already comppiled version. Personally, I use the executable provided by [yt-dlp](https://github.com/yt-dlp/FFmpeg-Builds/releases/tag/latest). The installation process is not too straight forward, but there are several available tutorials online. IN any case, you can also have the `FFMPEG` executable file in the current working directory and it should work as well.
+As for `FFMPEG`, you can either compile the source code yourself, or use an already compiled version. Personally, I use the executable provided by [yt-dlp](https://github.com/yt-dlp/FFmpeg-Builds/releases/tag/latest). The installation process is not too straight forward, but there are several available tutorials online. In any case, you can also have the `FFMPEG` executable file in the current working directory and it should work the same.
 
 ## How to use
 
@@ -96,7 +96,7 @@ The `load_config` method can be used to update the configuration of the `AudioVi
 
 There are 2 main `AudioVisualizer` methods used to produce the animations:
 
-- `create_bar_animation`: Creates an animatioin of bar shaped gradient images based on the relative amplitude. The frequency range is not visible in the resulting animation and the result is purely aesthetic.
+- `create_bar_animation`: Creates an animation of bar shaped gradient images based on the relative amplitude. The frequency range is not visible in the resulting animation and the result is purely aesthetic.
 
 - `create_fft_animation`: Creates an animation of the relative amplitude over frequency, over time, as it was created from the Fast Fourier Transform (fft) of the input audio data. 
 
@@ -149,15 +149,18 @@ While it has not been tested, all formats compatible with the python package `so
 
 ### Output
 
-While it has not been tested, all formats compatible with your version of `FFMPEG` should be compatible with `frequensee`.
+The only output formats that have been tested and are natively supported for `frequensee` are: `mp4`, `gif` and `webp`.
+
+While it has not been tested, all formats compatible with your version of `FFMPEG` should be compatible with `frequensee`, provided.
 
 You can check the formats and codecs supported in your version of `FFMPEG` by running the command:
+
 ```
 ffmpeg -formats
 ffmpeg -codecs
 ```
 
-Some formats might require additional ffmpeg options that can be passed by using the [`-f`command line option](#command-line-options) to the `cli` version.
+Formats other than the natively supported ones might require additional ffmpeg options that can be passed by using the [`-f`command line option](#command-line-options) to the `cli` version.
 
 Unfortunately, the order of `FFMPEG` parameters matters, so it might be difficult to use the `cli` version of `frequensee` for some formats. In such cases, please look into the `writers.py` module, which contains a custom `FFMpegWriter` class. It's possible to add options in the `_args` method in the correct place in the command.
 
@@ -172,7 +175,7 @@ Unfortunately, the order of `FFMPEG` parameters matters, so it might be difficul
 
 - `webp`: A format similar to `gif`, with the added advantages of smaller file size and low memory usage during creation. Unfortunately, it has many compatibility issues even in modern systems and is mostly useful in web development.
 
-For now, only `gif` and `webp` are natively supported for image formats.
+Currently, only `gif` and `webp` are supported for image formats.
 
 For the above reasons, it is recommended to use `mp4` or `webp` as the output format if possible. If a `gif` is needed, please make sure to limit the amount of frames included in each resulting `gif part` with the `-g` [command line option](#command-line-options), taking into account the input audio length, the available memory of your system, as well as the resulting framerate.
 
@@ -241,11 +244,4 @@ fqc -h
     -o OUTPUT_PATH, --output_path OUTPUT_PATH
         Path or filename of output file (including extension compatible with FFMPEG or json).
 
-The only required flags are the input and output filepaths.
-
-
-## TODO
-
-- Modify workflow for `test.pypi` release to only run when there is a package version update.
-- Documentation.
-- Better exception handling.
+The only required flags are the input and output filepaths, provided the output file is of a natively supported format.

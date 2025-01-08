@@ -281,35 +281,38 @@ class AudioVisualizer():
             Numpy array of RGBA values for the gradient.
         '''
         
-        # Precalculations to reduce load on every loop.
+        # For shorter equations.
         bar_parts = self.config.bar_parts
-        loop_range = int(100 * self.config.part_gap)
-        alpha_lower_limit = loop_range * self.config.part_gap / 2
-        alpha_upper_limit = loop_range - alpha_lower_limit
 
-        # `np.linspace`` can't work here since we want non-continuous values. Is there an alternative with np?
+        # `np.linspace`` doesn't work here since we want non-continuous values. Is there an alternative with np?
 
         # RGB calculation: the second loop is needed to create a percentage based alpha channel. Need to maintain dimensions.
         r = np.array([
-            [
-                [self.config.bar_colour_bottom[0] + (self.config.bar_colour_top[0] - self.config.bar_colour_bottom[0]) / bar_parts * i]
-            ] for i in reversed(range(int(bar_parts * h))) for _ in range(loop_range)
+            [[
+                (self.config.bar_colour_bottom[0] + 
+                (self.config.bar_colour_top[0] - self.config.bar_colour_bottom[0]) * 
+                i / bar_parts)
+            ]] for i in reversed(range(int(bar_parts * h))) for _ in range(self.loop_range)
         ])
         g = np.array([
-            [
-                [self.config.bar_colour_bottom[1] + (self.config.bar_colour_top[1] - self.config.bar_colour_bottom[1]) / bar_parts * i]
-            ] for i in reversed(range(int(bar_parts * h))) for _ in range(loop_range)
+            [[
+                (self.config.bar_colour_bottom[1] + 
+                (self.config.bar_colour_top[1] - self.config.bar_colour_bottom[1]) *
+                i / bar_parts)
+            ]] for i in reversed(range(int(bar_parts * h))) for _ in range(self.loop_range)
         ])
         b = np.array([
-            [
-                [self.config.bar_colour_bottom[2] + (self.config.bar_colour_top[2] - self.config.bar_colour_bottom[2]) / bar_parts * i]
-            ] for i in reversed(range(int(bar_parts * h))) for _ in range(loop_range)
+            [[
+                (self.config.bar_colour_bottom[2] + 
+                (self.config.bar_colour_top[2] - self.config.bar_colour_bottom[2]) * 
+                i / bar_parts)
+            ]] for i in reversed(range(int(bar_parts * h))) for _ in range(self.loop_range)
         ])
         # Alpha calculation: 1 only if i between lower and upper limits, else 0.
         a = np.array([
             [
-                [int((i > alpha_lower_limit) and (i < alpha_upper_limit))]
-            ] for _ in reversed(range(int(bar_parts * h))) for i in range(loop_range)
+                [int((i > self.alpha_lower_limit) and (i < self.alpha_upper_limit))]
+            ] for _ in reversed(range(int(bar_parts * h))) for i in range(self.loop_range)
         ])
 
         # print(h, r.shape, g.shape, b.shape, a.shape)
@@ -372,7 +375,6 @@ class AudioVisualizer():
                 if h != 0:
                     h = ceil(self.config.bar_parts * h) / self.config.bar_parts
 
-            if self.config.bar_parts:
                 grad = self._get_colour_gradient_parts(h)
             else:
                 grad = self._get_colour_gradient_full(h)
@@ -438,6 +440,12 @@ class AudioVisualizer():
             fig.subplots_adjust(bottom=0, top=1, left=0, right=1, wspace=0, hspace=0) 
 
         writer = self._create_writer(filepath)
+
+        if self.config.bar_parts:
+            # Precalculations to reduce load on every loop if we need alpha channel for bar parts.
+            self.loop_range: int = int(100 * self.config.part_gap)
+            self.alpha_lower_limit: float = self.loop_range * self.config.part_gap / 2
+            self.alpha_upper_limit: float = self.loop_range - self.alpha_lower_limit
 
         if (Path(filepath).suffix == ".gif" and 
             self.config.max_frames_per_gif and 
