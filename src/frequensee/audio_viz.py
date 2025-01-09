@@ -41,7 +41,7 @@ class AudioVisualizer():
             raise FileNotFoundError("Error: FFMPEG is not installed.")
 
 
-    def _calculate_audio_fft_properties(self):
+    def _calculate_audio_fft_properties(self) -> None:
         '''Calculates and saves required properties for the fft calculations.'''
         
         self.fft_window_size = int(self.sample_rate * self.config.fft_window_sec)
@@ -91,7 +91,7 @@ class AudioVisualizer():
         Parameters
         ----------
         frame_number : int
-            Frame number for which to calculate the fft arrray.
+            Frame number for which to calculate the fft array.
 
         Returns
         -------
@@ -112,7 +112,7 @@ class AudioVisualizer():
 
     def _create_fft_array(self) -> np.ndarray:
         '''
-        Creates the fft array and returns it.
+        Calculates and returns an array containing the fft data of all samples.
         
         Returns
         -------
@@ -141,7 +141,7 @@ class AudioVisualizer():
         Parameters
         ----------
         fft_array : np.ndarray
-            Fft array created by the `_create_fft_array` method.
+            Fft array created by the `_create_fft_array` method normalized based on maximum amplitude.
 
         Returns
         -------
@@ -159,7 +159,7 @@ class AudioVisualizer():
 
         for index, max in enumerate(reversed(max_of_cols)):
             if max >= self.config.amplitude_threshold:
-                end = len(max_of_cols) -  index
+                end = len(max_of_cols) - index
                 break
 
         # print(start, end)
@@ -242,7 +242,7 @@ class AudioVisualizer():
         Parameters
         ----------
         h : float
-            The height of the bar
+            The height of the bar.
 
         Returns
         -------
@@ -273,16 +273,13 @@ class AudioVisualizer():
         Parameters
         ----------
         h : float
-            The height of the bar
+            The height of the bar.
 
         Returns
         -------
         np.ndarray
             Numpy array of RGBA values for the gradient.
         '''
-        
-        # For shorter equations.
-        bar_parts = self.config.bar_parts
 
         # `np.linspace`` doesn't work here since we want non-continuous values. Is there an alternative with np?
 
@@ -291,28 +288,28 @@ class AudioVisualizer():
             [[
                 (self.config.bar_colour_bottom[0] + 
                 (self.config.bar_colour_top[0] - self.config.bar_colour_bottom[0]) * 
-                i / bar_parts)
-            ]] for i in reversed(range(int(bar_parts * h))) for _ in range(self.loop_range)
+                i / self.config.bar_parts)
+            ]] for i in reversed(range(int(self.config.bar_parts * h))) for _ in range(self.loop_range)
         ])
         g = np.array([
             [[
                 (self.config.bar_colour_bottom[1] + 
                 (self.config.bar_colour_top[1] - self.config.bar_colour_bottom[1]) *
-                i / bar_parts)
-            ]] for i in reversed(range(int(bar_parts * h))) for _ in range(self.loop_range)
+                i / self.config.bar_parts)
+            ]] for i in reversed(range(int(self.config.bar_parts * h))) for _ in range(self.loop_range)
         ])
         b = np.array([
             [[
                 (self.config.bar_colour_bottom[2] + 
                 (self.config.bar_colour_top[2] - self.config.bar_colour_bottom[2]) * 
-                i / bar_parts)
-            ]] for i in reversed(range(int(bar_parts * h))) for _ in range(self.loop_range)
+                i / self.config.bar_parts)
+            ]] for i in reversed(range(int(self.config.bar_parts * h))) for _ in range(self.loop_range)
         ])
         # Alpha calculation: 1 only if i between lower and upper limits, else 0.
         a = np.array([
             [
                 [int((i > self.alpha_lower_limit) and (i < self.alpha_upper_limit))]
-            ] for _ in reversed(range(int(bar_parts * h))) for i in range(self.loop_range)
+            ] for _ in reversed(range(int(self.config.bar_parts * h))) for i in range(self.loop_range)
         ])
 
         # print(h, r.shape, g.shape, b.shape, a.shape)
@@ -442,7 +439,7 @@ class AudioVisualizer():
         writer = self._create_writer(filepath)
 
         if self.config.bar_parts:
-            # Precalculations to reduce load on every loop if we need alpha channel for bar parts.
+            # Precalculations to reduce load on every frame creation loop if we need alpha channel for bar parts.
             self.loop_range: int = int(100 * self.config.part_gap)
             self.alpha_lower_limit: float = self.loop_range * self.config.part_gap / 2
             self.alpha_upper_limit: float = self.loop_range - self.alpha_lower_limit
@@ -519,7 +516,7 @@ class AudioVisualizer():
         bar_array: np.ndarray = self._create_bar_array(fft_array, start, end)
 
         data = {
-            "audio_filepath": self.audio_path,
+            "audio_filepath": str(self.audio_path.resolve()),
             "bars": self.config.bars,
             "bar_graph": bar_array.tolist()
         }
@@ -538,8 +535,6 @@ class AudioVisualizer():
         filepath : Path | str
             The filepath where the resulting animation file will be saved (must contain file extension). 
         '''
-
-        # add user defined start and end frequencies for visualization.
 
         if Path(filepath).suffix == ".gif":
             if self.config.framerate > 30:

@@ -43,10 +43,10 @@ def main_cli():
     Red/Green/Blue values: Between 0 and 255. (Default: `255,0,0`)''')
     parser.add_argument("-f", "--ffmpeg_options", type=str, required=False, default="", 
                         help="Additional options for FFMPEG as a string separated by space. Do not include spaces in the arguments.")
-    parser.add_argument("-j", "--export_json", action="store_true", 
+    parser.add_argument("-j", "--export_json", action="store_true", required=False, 
                         help='''If specified, exports the bar graph data over time in json format instead of producing an animation file.
     Includes audio filepath and framerate for which the data was created.''')
-    parser.add_argument("-fft", "--animate_fft", action="store_true", 
+    parser.add_argument("-fft", "--animate_fft", action="store_true", required=False, 
                         help="If specified, creates an animation of the raw fft over time instead of the bars.")
     parser.add_argument("-o", "--output_path", type=str, 
                         help="Path or filename of output file (including extension compatible with FFMPEG or json).")
