@@ -188,6 +188,9 @@ class AudioVisualizer():
             Numpy array containing the values for the bar visualization.
         '''
 
+        # Testing using function to make low amplitude frequency bars more prevalent for aesthetics.
+        # fft_array = np.apply_along_axis(lambda x: np.sqrt(5*x) / np.sqrt(5), 1, fft_array)
+
         bar_array = []
         for frame in fft_array:
             frame:np.ndarray = frame[start:end]
@@ -363,6 +366,9 @@ class AudioVisualizer():
 
             if h == 0:
                 continue
+                # Testing 1 bar minimum.
+                # if self.config.bar_parts:
+                #     h = 1 / self.config.bar_parts
 
             if self.config.bar_parts:
                 if h <= 1 / self.config.bar_parts:

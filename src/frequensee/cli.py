@@ -4,13 +4,16 @@ from pathlib import Path
 
 from .audio_viz import AudioVisualizer
 from .config import Config
+from .version import __version__
 
 
 def main_cli():
     '''Function to be called with the `frequensee` or `fqc` cli command created when installing as package.'''
 
+    print(f'Frequensee v{__version__}. Use command `fqc -h` for a list of commands.')
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input_path", type=str, 
+    parser.add_argument("-i", "--input_path", type=str, required=True,
                         help="Filepath to the audio file.")
     parser.add_argument("-r", "--framerate", type=int, required=False, default=60, 
                         help="Animation framerate (frames per second, default: 60). For GIFs maximum is 30, adjusted automatically.")
@@ -48,7 +51,7 @@ def main_cli():
     Includes audio filepath and framerate for which the data was created.''')
     parser.add_argument("-fft", "--animate_fft", action="store_true", required=False, 
                         help="If specified, creates an animation of the raw fft over time instead of the bars.")
-    parser.add_argument("-o", "--output_path", type=str, 
+    parser.add_argument("-o", "--output_path", type=str,  required=True,
                         help="Path or filename of output file (including extension compatible with FFMPEG or json).")
     
     args = parser.parse_args()

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-version = "0.0.4"
+dynamic = ["version"]
 name = "frequensee"
 requires-python = ">= 3.9"
 dependencies = [
@@ -38,3 +38,7 @@ Issues = "https://github.com/AntonisTorb/Frequensee/issues"
 [project.scripts]
 fqc = "frequensee:main_cli"
 frequensee = "frequensee:main_cli"
+
+[tool.hatch.version]
+source = "regex"
+path = "src/frequensee/version.py"
