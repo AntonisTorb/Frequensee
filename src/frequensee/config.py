@@ -19,6 +19,7 @@ class Config():
         \s*,?\s*                        # optional spaces, followed by optional comma, followed by optional spaces.
         (0|0\.\d{1,2}|1)?$              # A (0 - 1, optional)
         ''', re.VERBOSE)
+        self.boost_regex: re.Pattern = re.compile(r'(\d+\.?\d*)\s*,\s*(\d+\.?\d*)') # "float, float" with any spaces between floats and comma.
         
         # Default values in the case of initialization without a provided or incomplete `options` dictionary.
 
@@ -34,6 +35,8 @@ class Config():
         self.part_gap: float = 0.2
         # Relative amplitude needed for a frequency to show in the graph. Used to calculate the edges of the graph (between 0 and 1).
         self.amplitude_threshold: float = 0.2
+        # (a,b) Boost low amplitude frequencies with the formula: Y = log(a*X+b)/log(a+b).
+        self.low_boost: tuple[float] = (0,0)
         # Maximum frames per GIF. Due to high memory usage, please select according to your RAM size and framerate.
         self.max_frames_per_gif: int = 1000
         # Represents image quality (dots per inch).
@@ -41,7 +44,7 @@ class Config():
         # Image sixe in pixels (width, height).        
         self.image_size_pix: Iterable[int,int] = (1920, 1080)
         # Figure backround colour as a string with format: "r,g,b,a"
-        self.background: Iterable[float] = (0,0,0,0)
+        self.background: Iterable[float] = (0, 0, 0, 0)
         # Additional options for FFMPEG
         self.ffmpeg_options: list[str]|None = None
         # Colour for bottom of bar gradient
@@ -67,6 +70,15 @@ class Config():
             self.part_gap = options["part_gap"]
         if "amplitude_threshold" in options.keys():
             self.amplitude_threshold = options["amplitude_threshold"]
+        if "low_boost" in options.keys():
+            boost_match: re.Match = re.match(self.boost_regex, options["low_boost"].strip())
+            if boost_match is None:
+                raise ValueError("Error: invalid low frequency boost input.")
+            a, b = boost_match.groups()
+            a, b = float(a), float(b)
+            if (a == 0) != (b == 0):
+                raise ValueError("Error: invalid low frequency boost input, a and b must be greater or equal to 1, or both 0.")
+            self.low_boost = (a,b)
         if "max_frames_per_gif" in options.keys():
             self.max_frames_per_gif = options["max_frames_per_gif"]
         if "dpi" in options.keys():
@@ -75,10 +87,10 @@ class Config():
             self.dpi = options["dpi"]
         if "width" in options.keys() and "height" in options.keys():
             if options["width"] <= 0 or options["height"] <= 0:
-                raise ValueError("Error: Pixle dimensions cannot be less or equal to 0.")
+                raise ValueError("Error: Pixel dimensions cannot be less or equal to 0.")
             self.image_size_pix = (options["width"], options["height"])
         if "background" in options.keys():
-            bg_match: re.Match = re.match(self.rgba_regex, options["background"])
+            bg_match: re.Match = re.match(self.rgba_regex, options["background"].strip())
             if bg_match is None:
                 raise ValueError("Error: invalid backround colour input.")
             rgba: tuple[str|None] = bg_match.groups()
@@ -94,13 +106,13 @@ class Config():
                 self.ffmpeg_options = options["ffmpeg_options"].split()
                 self.ffmpeg_options = [option.strip() for option in self.ffmpeg_options]
         if "bar_colour_bottom" in options.keys():
-            bar_bottom_match: re.Match = re.match(self.rgba_regex, options["bar_colour_bottom"])
+            bar_bottom_match: re.Match = re.match(self.rgba_regex, options["bar_colour_bottom"].strip())
             if bar_bottom_match is None:
                 raise ValueError("Error: invalid `bar_colour_bottom` input.")
             rgb: tuple[str] = bar_bottom_match.groups()[:3]
             self.bar_colour_bottom = tuple([int(i) / 255 for i in rgb])
         if "bar_colour_top" in options.keys():
-            bar_top_match: re.Match = re.match(self.rgba_regex, options["bar_colour_top"])
+            bar_top_match: re.Match = re.match(self.rgba_regex, options["bar_colour_top"].strip())
             if bar_top_match is None:
                 raise ValueError("Error: invalid `bar_colour_top` input.")
             rgb: tuple[str] = bar_top_match.groups()[:3]

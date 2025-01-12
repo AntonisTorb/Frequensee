@@ -11,6 +11,7 @@ from matplotlib.animation import FuncAnimation, FFMpegWriter
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.image import AxesImage
+from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 import numpy as np
 import soundfile as sf
@@ -24,10 +25,16 @@ class AudioVisualizer():
     def __init__(self, config: Config) -> None:
         '''
         Audio frequency visualizer using the `Fast Fourier Transform (fft)` in order to produce animations with FFMPEG.
+        Methods (Please check the documentation of each or the `README` for additional information):
+        - `load()`: Load the audio file data>
+        - `load_config`: Load a new configuration after initialization.
+        - `create_bar_animation`: Create a bar animation with the audio fft data.
+        - `create_fft_animation`: Create an fft animation with the audio fft data.
+        - `extract_json`: Extract the bar data in `json` format
 
         Parameters
         ----------
-        config : Config
+        config : `config.Config`
             Instance of `Config` class containing configuration options (check `config.py`).
         '''
 
@@ -55,7 +62,7 @@ class AudioVisualizer():
         
         Parameters
         ----------
-        audio_path : pathlib.Path | str
+        audio_path : `pathlib.Path | str`
             Path to the input audio file.
         '''
 
@@ -75,7 +82,7 @@ class AudioVisualizer():
         
         Parameters
         ----------
-        config : Config
+        config : `config.Config`
             Instance of `Config` class containing configuration options (check `config.py`).
         '''
     
@@ -90,12 +97,12 @@ class AudioVisualizer():
         
         Parameters
         ----------
-        frame_number : int
+        frame_number : `int`
             Frame number for which to calculate the fft array.
 
         Returns
         -------
-        np.ndarray
+        `np.ndarray`
             Numpy array containing the data in the window.
         '''
 
@@ -112,12 +119,12 @@ class AudioVisualizer():
 
     def _create_fft_array(self) -> np.ndarray:
         '''
-        Calculates and returns an array containing the fft data of all samples.
+        Calculates and returns a normalized array containing the fft data of all samples.
         
         Returns
         -------
-        np.ndarray
-            Numpy array containing the fft data for all frames(rows).
+        `np.ndarray`
+            Numpy array containing the fft data for all frames normalized in range [0,1].
         '''
 
         print("Creating fft frames...")
@@ -132,20 +139,23 @@ class AudioVisualizer():
             fft_array.append(fft)
 
         print(f'Done.{" "*20}')
-        return np.array(fft_array)
+
+        fft_array = np.array(fft_array)
+        return fft_array / fft_array.max()
 
 
     def _get_frequency_ranges(self, fft_array: np.ndarray) -> tuple[int]:
-        '''Determines the edge frequencies where the amplitude is high enough to visualize consistently.
+        '''Determines and returns the starting and ending indexes of the array between which 
+        the amplitude is sufficiently high based on the configuration.
         
         Parameters
         ----------
-        fft_array : np.ndarray
-            Fft array created by the `_create_fft_array` method normalized based on maximum amplitude.
+        fft_array : `np.ndarray`
+            Fft array created by the `_create_fft_array` method.
 
         Returns
         -------
-        tuple of int with size of 2
+        `tuple[int, int]`
             The start and end column indexes of the `fft_array` defining the range to be visualized.
         '''
 
@@ -170,71 +180,38 @@ class AudioVisualizer():
     def _create_bar_array(self, fft_array: np.ndarray, start: int, end: int) -> np.ndarray:
         '''
         Creates and returns a numpy array containing all the values for the bar visualization.
-        The array is split into pieces according to the provided amount of bars and the sum of 
-        the values iis used for the bar height. The array is normalized based on the maximum value.
+        The array is split into parts according to the provided amount of bars and the sum of 
+        the values is used for the bar height. The array is normalized based on the maximum value.
 
         Parameters
         ----------
-        fft_array : np.ndarray
+        fft_array : `np.ndarray`
             Fft array created by the `_create_fft_array` method.
-        start : int
+        start : `int`
             Start index for `fft_array`.
-        end : int
+        end : `int`
             End index for `fft_array`.
 
         Returns
         -------
-        np.ndarray
+        `np.ndarray`
             Numpy array containing the values for the bar visualization.
         '''
 
-        # Testing using function to make low amplitude frequency bars more prevalent for aesthetics.
-        # fft_array = np.apply_along_axis(lambda x: np.sqrt(5*x) / np.sqrt(5), 1, fft_array)
+        # Boosting lower frequencies if configured.
+        if self.config.low_boost != (0,0):
+            a = self.config.low_boost[0]
+            b = self.config.low_boost[1]
+            fft_array = np.apply_along_axis(lambda x: np.log(a*x + b) / np.log(a + b), 1, fft_array)
 
         bar_array = []
         for frame in fft_array:
-            frame:np.ndarray = frame[start:end]
+            frame: np.ndarray = frame[start:end]
             chunks: list[np.ndarray] = np.array_split(frame, self.config.bars)
             bar_array.append([chunk.sum() for chunk in chunks])
         bar_array = np.array(bar_array)
 
         return bar_array / bar_array.max()
-
-
-    def _create_fft_frame(self, frame_number: int, ax: Axes,
-                           x_values: np.ndarray, y_values: np.ndarray) -> list[Artist]:
-        '''
-        Used by the `_create_animation_file` method. Creates and returns a list of `Artist` objects 
-        used to draw the animation of the frequencies over time.
-
-        Parameters
-        ----------
-        frame_number : int
-            The frame number.
-        ax : Axes
-            Axes object where the graph is drawn.
-        x_values : np.ndarray
-            Numpy array containing the values for the X axis.
-        y_values : np.ndarray
-            Numpy array containing the values for the Y axis.
-            
-
-        Returns
-        -------
-        List of `Artist`
-            List of Artist used by the animation function.
-        '''
-
-        ax.clear()
-        ax.set_ylim(0,1)
-        ax.set_xlabel("Frequency (Hz)")
-        ax.set_ylabel("Relative Amplitude")
-        ax.patch.set_alpha(0)
-
-        lines = ax.plot(x_values, y_values[frame_number])
-
-        print(f'{(100*frame_number/self.frame_count):.2f}%', end="\r")
-        return lines
 
 
     def _get_colour_gradient_full(self, h: float) -> np.ndarray:
@@ -244,13 +221,13 @@ class AudioVisualizer():
 
         Parameters
         ----------
-        h : float
+        h : `float`
             The height of the bar.
 
         Returns
         -------
-        np.ndarray
-            Numpy array of RGB values for the gradient.
+        `np.ndarray`
+            Numpy array of RGB values for the gradient with shape `[self.config.dpi, 1, 3]`.
         '''
 
         r = np.linspace([self.config.bar_colour_top[0] * h + self.config.bar_colour_bottom[0] * (1 - h)],
@@ -263,8 +240,8 @@ class AudioVisualizer():
                 [self.config.bar_colour_bottom[2]],
                 self.config.dpi)[:, :, None]
         
-        # print(h, r.shape, g.shape, b.shape)
         grad = np.concatenate([r, g, b], axis=2)
+        # print(grad.shape)
         return grad
 
 
@@ -275,118 +252,111 @@ class AudioVisualizer():
 
         Parameters
         ----------
-        h : float
+        h : `float`
             The height of the bar.
 
         Returns
         -------
-        np.ndarray
-            Numpy array of RGBA values for the gradient.
+        `np.ndarray`
+            Numpy array of RGBA values for the gradient with shape:
+            `[(int(self.config.bar_parts * h) * self.loop_range , 1, 4]`.
         '''
 
         # `np.linspace`` doesn't work here since we want non-continuous values. Is there an alternative with np?
 
         # RGB calculation: the second loop is needed to create a percentage based alpha channel. Need to maintain dimensions.
-        r = np.array([
-            [[
+        r = [[[
                 (self.config.bar_colour_bottom[0] + 
                 (self.config.bar_colour_top[0] - self.config.bar_colour_bottom[0]) * 
                 i / self.config.bar_parts)
             ]] for i in reversed(range(int(self.config.bar_parts * h))) for _ in range(self.loop_range)
-        ])
-        g = np.array([
-            [[
+        ]
+        g = [[[
                 (self.config.bar_colour_bottom[1] + 
                 (self.config.bar_colour_top[1] - self.config.bar_colour_bottom[1]) *
                 i / self.config.bar_parts)
             ]] for i in reversed(range(int(self.config.bar_parts * h))) for _ in range(self.loop_range)
-        ])
-        b = np.array([
-            [[
-                (self.config.bar_colour_bottom[2] + 
-                (self.config.bar_colour_top[2] - self.config.bar_colour_bottom[2]) * 
-                i / self.config.bar_parts)
+        ]
+        b = [[[
+                    (self.config.bar_colour_bottom[2] + 
+                    (self.config.bar_colour_top[2] - self.config.bar_colour_bottom[2]) * 
+                    i / self.config.bar_parts)
             ]] for i in reversed(range(int(self.config.bar_parts * h))) for _ in range(self.loop_range)
-        ])
+        ]
         # Alpha calculation: 1 only if i between lower and upper limits, else 0.
-        a = np.array([
-            [
+        a = [[
                 [int((i > self.alpha_lower_limit) and (i < self.alpha_upper_limit))]
             ] for _ in reversed(range(int(self.config.bar_parts * h))) for i in range(self.loop_range)
-        ])
+        ]
 
-        # print(h, r.shape, g.shape, b.shape, a.shape)
         grad = np.concatenate([r, g, b, a], axis=2)
+        # print(grad.shape)
         return grad
 
 
-    def _create_bar_graph_frame(self, frame_number:int, ax: Axes, 
-                                x_values: list[int], y_values: np.ndarray) -> list[Artist]:
+    def _create_fft_frame(self, frame_number: int, artists: list[Line2D], 
+                          y_values: np.ndarray) -> list[Line2D]:
         '''
-        Used by the `_create_animation_file` method. Creates and returns a list of `Artist` objects 
-        used to draw the animation of the bars over time.
+        Used by the `_create_animation_file` method. 
+        Updates the data of the artists for each frame and returns the list of artists.
 
         Parameters
         ----------
-        frame_number : int
+        frame_number : `int`
             The frame number.
-        ax : Axes
-            Axes object where the graph is drawn.
-        x_values : np.ndarray
-            Numpy array containing the values for the X axis.
-        y_values : np.ndarray
-            Numpy array containing the values for the Y axis.
+        artists: list[matplotlib.lines.Line2D]
+            List of `Line2D` objects to update in the animation.
+        y_values : `np.ndarray`
+            Numpy array containing the values for the Y axis (amplitude arrays for each frame).
             
 
         Returns
         -------
-        List of `Artist`
-            List of Artist used by the animation function.
+        `list[matplotlib.lines.Line2D]`
+            List of updated `Line2D` objects.
         '''
 
-        ax.clear()
-        plt.axis("off")
-        plt.margins(x=0)
-        ax.set_ylim(0,1)
-        ax.patch.set_alpha(0)
-        lim = ax.get_xlim() + ax.get_ylim()
-        ax.axis(lim)
-        
-        bar: Rectangle
-        bars = ax.bar(x_values, y_values[frame_number])
+        for line in artists:
+            line.set_data(self.fft_frequency_array, y_values[frame_number])
 
-        images: list[AxesImage] = []
+        print(f'{(100*frame_number/self.frame_count):.2f}%', end="\r")
+        return artists
 
-        # Replace bars with color gradient image based on bar height.
-        for bar in bars:
-            bar.set_alpha(0)
 
-            x, y = bar.get_xy()
-            w, h = bar.get_width(), bar.get_height()
+    def _create_bar_graph_frame(self, frame_number: int, artists: list[AxesImage], 
+                                y_values: np.ndarray) -> list[AxesImage]:
+        '''
+        Used by the `_create_animation_file` method. 
+        Updates the data and extent of the artists for each frame and returns the list of artists.
 
-            if h == 0:
-                continue
-                # Testing 1 bar minimum.
-                # if self.config.bar_parts:
-                #     h = 1 / self.config.bar_parts
+        Parameters
+        ----------
+        frame_number : `int`
+            The frame number.
+        artists: list[matplotlib.image.AxesImage]
+            List of `AxesImage` objects to update in the animation.
+        y_values : `np.ndarray`
+            Numpy array containing the values for the Y axis (amplitude arrays for each frame).
+            
+        Returns
+        -------
+        `list[matplotlib.image.AxesImage]`
+            List of updated `AxesImage` objects.
+        '''
 
+        for bar_coords, img, h in zip(self.coords, artists, y_values[frame_number]):
             if self.config.bar_parts:
-                if h <= 1 / self.config.bar_parts:
-                    continue
-
-                # Normalize the height so bar parts align.
-                if h != 0:
-                    h = ceil(self.config.bar_parts * h) / self.config.bar_parts
-
+                if h == 0:
+                    h = 1 / self.config.bar_parts
+                h = ceil(self.config.bar_parts * h) / self.config.bar_parts
                 grad = self._get_colour_gradient_parts(h)
             else:
                 grad = self._get_colour_gradient_full(h)
-            
-            img = ax.imshow(grad, extent=[x, x + w, y, y + h], aspect="auto", zorder=10)
-            images.append(img)
+            img.set_data(grad)
+            img.set_extent([bar_coords[0], bar_coords[0] + bar_coords[1], bar_coords[2], bar_coords[2] + h])
 
         print(f'{(100*frame_number/self.frame_count):.2f}%', end="\r")
-        return images
+        return artists
 
 
     def _create_writer(self, filepath) -> FFMpegWriter|FFMpegWriterWithAudio:
@@ -395,27 +365,92 @@ class AudioVisualizer():
 
         Parameters
         ----------
-        filepath : Path|str
+        filepath : `Path | str`
             The filepath to the output file.
 
         Returns
         -------
-        FFMpegWriter or FFMpegWriterWithAudio
-            Appropriate writer initialized with options according to output file format.
+        `FFMpegWriter` or `FFMpegWriterWithAudio`
+            Appropriate writer initialized with options according to the output file format.
         '''
 
         if Path(filepath).suffix in [".gif", ".webp"]:
             if Path(filepath).suffix == ".webp":
                 if self.config.ffmpeg_options is not None:
-                    self.config.ffmpeg_options = ["-c:v", "webp", "-loop", "0", "-pix_fmt", "yuva420p"] + self.config.ffmpeg_options
+                    self.config.ffmpeg_options = (
+                        ["-c:v", "webp", "-loop", "0", "-pix_fmt", "yuva420p"] + self.config.ffmpeg_options
+                    )
                 else:
                     self.config.ffmpeg_options = ["-c:v", "webp", "-loop", "0", "-pix_fmt", "yuva420p"]
 
             writer = FFMpegWriter(fps=self.config.framerate, extra_args=self.config.ffmpeg_options)
         else:
-            writer = FFMpegWriterWithAudio(fps=self.config.framerate, audio_filepath=self.audio_path, extra_args=self.config.ffmpeg_options)
+            writer = FFMpegWriterWithAudio(fps=self.config.framerate, audio_filepath=self.audio_path,
+                                            extra_args=self.config.ffmpeg_options)
 
         return writer
+
+
+    def _initial_frame(self, ax: Axes, x_values: list[int]|np.ndarray, 
+                       animation_func: Callable) -> list[Artist]:
+        '''
+        Creates the initial animation frame and returns the resulting list of `Artist` objects.
+
+        Parameters
+        ----------
+        ax : `matplotlib.axes.Axes`
+            The matplotlib axes where the frame is drawn.
+        x_values: `list[int] | np.ndarray`
+            The values for the x axis. List of integers for bar animation, numpy array for fft animation.
+        animation_func: `collections.abc.Callable`
+            Function to be used by `FuncAnimation` to produce the animation frames.
+
+        Returns
+        -------
+        `list[matplotlib.artist.Artist]`
+            List of `Artist` object resulting from the initial frame drawing. 
+            Artists are `matplotlib.image.AxesImage` for bar animation and `matplotlib.lines.Line2D` for fft animation.
+        '''
+
+        ax.clear()
+        ax.set_ylim(0,1)
+        ax.patch.set_alpha(0)
+
+        if animation_func == self._create_bar_graph_frame:
+            plt.axis("off")
+            plt.margins(x=0)
+            lim = ax.get_xlim() + ax.get_ylim()
+            ax.axis(lim)
+            
+            bar: Rectangle
+            bars = ax.bar(x_values, [1 for _ in x_values])
+
+            artists: list[AxesImage] = []
+            grad_init: np.ndarray = np.array([[[0,0,0,0]]])
+
+            # Keeping track of bar coordinates to update in animation.
+            self.coords: list[tuple[float]] = []
+
+            # Replace bars with color gradient image based on bar height.
+            for bar in bars:
+                bar.set_alpha(0)
+
+                x, y = bar.get_xy()
+                w, h = bar.get_width(), bar.get_height()
+                self.coords.append((x,w,y))
+
+                img = ax.imshow(grad_init, extent=[x, x + w, y, y + h], aspect="auto", zorder=10)
+                artists.append(img)
+            ax.set_xlim(1 - w/2, w/2 + self.config.bars)
+        elif animation_func == self._create_fft_frame:
+            ax.set_xlabel("Frequency (Hz)")
+            ax.set_ylabel("Relative Amplitude")
+            ax.patch.set_alpha(0)
+            ax.set_xlim(x_values[0], x_values[-1])
+
+            artists: list[Line2D] = ax.plot(x_values, [0 for _ in x_values])
+
+        return artists
 
 
     def _create_animation_file(self, x_values: list|np.ndarray, y_values: np.ndarray, 
@@ -425,13 +460,13 @@ class AudioVisualizer():
 
         Parameters
         ----------
-        x_values : np.ndarray
+        x_values : `np.ndarray`
             Numpy array containing the values for the X axis.
-        y_values : np.ndarray
-            Numpy array containing the values for the Y axis.
-        animation_func: Callable
+        y_values : `np.ndarray`
+            Numpy array containing the values for the Y axis for each frame.
+        animation_func: `collections.abc.Callable`
             Function to be used by `FuncAnimation` to produce the animation frames.
-        filepath: Path|str
+        filepath: `Path | str`
             The filepath where the resulting animation file(s) will be saved (must contain file extension).
         '''
 
@@ -449,6 +484,8 @@ class AudioVisualizer():
             self.loop_range: int = int(100 * self.config.part_gap)
             self.alpha_lower_limit: float = self.loop_range * self.config.part_gap / 2
             self.alpha_upper_limit: float = self.loop_range - self.alpha_lower_limit
+        
+        artists: list[Artist] = self._initial_frame(ax, x_values, animation_func)
 
         if (Path(filepath).suffix == ".gif" and 
             self.config.max_frames_per_gif and 
@@ -482,7 +519,7 @@ class AudioVisualizer():
                 print(f'Creating {filepath_part}, {i+1}/{len(y_values_list)}...')
                 
                 ani = FuncAnimation(fig, 
-                            partial(animation_func, ax=ax, x_values=x_values, y_values=y_values), 
+                            partial(animation_func, artists=artists, y_values=y_values), 
                             frames = y_values.shape[0])
 
                 ani.save(filepath_part, writer=writer, dpi=self.config.dpi,
@@ -493,7 +530,7 @@ class AudioVisualizer():
         
         print(f'Creating {filepath}...')
         ani = FuncAnimation(fig, 
-                            partial(animation_func, ax=ax, x_values=x_values, y_values=y_values), 
+                            partial(animation_func, artists=artists, y_values=y_values),
                             frames = y_values.shape[0])
 
         ani.save(filepath, writer=writer, dpi=self.config.dpi,
@@ -509,7 +546,7 @@ class AudioVisualizer():
         
         Parameters
         ----------
-        filepath : Path | str
+        filepath : `Path | str`
             The filepath where the resulting `json` file will be saved (must contain `.json` file extension). 
         '''
 
@@ -517,7 +554,6 @@ class AudioVisualizer():
         self.frame_offset = int(len(self.audio)/self.frame_count)
 
         fft_array = self._create_fft_array()
-        fft_array /= fft_array.max()
         start, end = self._get_frequency_ranges(fft_array)
         bar_array: np.ndarray = self._create_bar_array(fft_array, start, end)
 
@@ -533,12 +569,12 @@ class AudioVisualizer():
 
     def create_fft_animation(self, filepath: Path|str) -> None:
         '''
-        Creates an animation file in the provided filepath with the Amplitude - Frequency graph over time
-        as produced with the fft.
+        Creates an animation file in the provided filepath with the `Normalized Amplitude - Frequency` graph over time
+        as produced by the fft.
 
         Parameters
         ----------
-        filepath : Path | str
+        filepath : `Path | str`
             The filepath where the resulting animation file will be saved (must contain file extension). 
         '''
 
@@ -550,22 +586,21 @@ class AudioVisualizer():
         self.frame_offset = int(len(self.audio)/self.frame_count)
 
         fft_array = self._create_fft_array()
-        # Normalize between 0 and 1.
-        fft_array: np.ndarray = fft_array / fft_array.max()
 
         start , end = self._get_frequency_ranges(fft_array)
+        self.fft_frequency_array = self.fft_frequency_array[start:end]
         # print(fft_array.shape)
 
-        self._create_animation_file(self.fft_frequency_array[start:end], fft_array[:, start:end], self._create_fft_frame, filepath)
+        self._create_animation_file(self.fft_frequency_array, fft_array[:, start:end], self._create_fft_frame, filepath)
 
 
-    def create_bar_animation(self, filepath: Path|str):
+    def create_bar_animation(self, filepath: Path|str) -> None:
         '''
         Creates an animation file in the provided filepath with the bar graph over time.
 
         Parameters
         ----------
-        filepath : Path | str
+        filepath : `Path | str`
             The filepath where the resulting animation file will be saved (must contain file extension). 
         '''
 
@@ -577,8 +612,6 @@ class AudioVisualizer():
         self.frame_offset = int(len(self.audio) / self.frame_count)
 
         fft_array = self._create_fft_array()
-        # Normalize between 0 and 1.
-        fft_array: np.ndarray = fft_array / fft_array.max()
 
         start , end = self._get_frequency_ranges(fft_array)
         if (end - start) < self.config.bars:

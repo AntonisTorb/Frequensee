@@ -27,6 +27,9 @@ def main_cli():
                         help="Gap between bar parts as a percentage of the bar length (Between 0 and 1, excluding 1, default: 0.1).")
     parser.add_argument("-t", "--amplitude_threshold", type=float, required=False, default=0.2, 
                         help="Minimum relative amplitude for frequencies, used to calculate the edges of the graph (between 0 and 1, default: 0.2).")
+    parser.add_argument("-lb", "--low_boost", type=str, required=False, default="0,0", 
+                        help='''Boost low amplitude frequencies with the formula: Y = log(a*X+b)/log(a+b).
+    Provided in the format "a,b", with a,b: floats greater or equal to 1, or both zero for no boost (default: "0,0")''')
     parser.add_argument("-g", "--max_frames_per_gif", type=int, required=False, default=1000, 
                         help="Maximum frames per GIF. Due to high memory usage, please select according to your RAM size and framerate (Default: 1000).")
     parser.add_argument("-d", "--dpi", type=int, required=False, default=100, 
@@ -74,6 +77,7 @@ def main_cli():
         "bar_parts": args.bar_parts,
         "part_gap": args.part_gap,
         "amplitude_threshold": args.amplitude_threshold,
+        "low_boost": args.low_boost,
         "max_frames_per_gif": args.max_frames_per_gif,
         "dpi": args.dpi,
         "width": args.width,

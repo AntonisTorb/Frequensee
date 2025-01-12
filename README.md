@@ -20,7 +20,9 @@ FFT animation|
     - [Input](#input)
     - [Output](#output)
 - [Common output formats: Advantages and Disadvantages](#common-output-formats-advantages-and-disadvantages)
+- [Boosting lower amplitude bars](#boosting-lower-amplitude-bars)
 - [Command line options](#command-line-options)
+- [Epilogue](#epilogue)
 
 ## Installation
 
@@ -179,6 +181,11 @@ Currently, only `gif` and `webp` are supported for image formats.
 
 For the above reasons, it is recommended to use `mp4` or `webp` as the output format if possible. If a `gif` is needed, please make sure to limit the amount of frames included in each resulting `gif part` with the `-g` [command line option](#command-line-options), taking into account the input audio length, the available memory of your system, as well as the resulting framerate.
 
+## Boosting lower amplitude bars
+
+If the resulting animation has several bars with consistently low amplitudes, impacting the final visualization in a negative way, you can use the `-lb` [command line argument](#command-line-options) and boost them depending on the values provided. Below is an animation showing the changes to the relative amplitude depending on the values provided for `a` and`b`:
+
+![image](https://raw.githubusercontent.com/AntonisTorb/Frequensee/refs/heads/main/images/boost.webp) 
 
 ## Command line options
 
@@ -210,6 +217,9 @@ fqc -h
 
     -t AMPLITUDE_THRESHOLD, --amplitude_threshold AMPLITUDE_THRESHOLD
         Minimum relative amplitude for frequencies, used to calculate the edges of the graph (between 0 and 1, default: 0.2).
+
+    -lb LOW_BOOST, --low_boost LOW_BOOST
+        Boost low amplitude frequencies with the formula: Y = log(a*X+b)/log(a+b). Provided in the format "a,b", with a,b: floats greater or equal to 1, or both zero for no boost (default: "0,0")
 
     -g MAX_FRAMES_PER_GIF, --max_frames_per_gif MAX_FRAMES_PER_GIF
         Maximum frames per GIF. Due to high memory usage, please select according to your RAM size and framerate (Default: 1000).
@@ -245,3 +255,11 @@ fqc -h
         Path or filename of output file (including extension compatible with FFMPEG or json).
 
 The only required flags are the input and output filepaths, provided the output file is of a natively supported format.
+
+## Epilogue
+
+This project was inspired by [this YouTube video by Jeff Heaton](https://www.youtube.com/watch?v=rj9NOiFLxWA). You can find his GitHub repository in the description of his video.
+
+If you have any issues or ideas, don't hesitate to post them, or even submit a pull request.
+
+Thank you for using `frequensee`!
