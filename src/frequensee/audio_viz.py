@@ -374,21 +374,19 @@ class AudioVisualizer():
             Appropriate writer initialized with options according to the output file format.
         '''
 
-        if Path(filepath).suffix in [".gif", ".webp"]:
-            if Path(filepath).suffix == ".webp":
-                if self.config.ffmpeg_options is not None:
-                    self.config.ffmpeg_options = (
-                        ["-c:v", "webp", "-loop", "0", "-pix_fmt", "yuva420p"] + self.config.ffmpeg_options
-                    )
-                else:
-                    self.config.ffmpeg_options = ["-c:v", "webp", "-loop", "0", "-pix_fmt", "yuva420p"]
-
-            writer = FFMpegWriter(fps=self.config.framerate, extra_args=self.config.ffmpeg_options)
-        else:
-            writer = FFMpegWriterWithAudio(fps=self.config.framerate, audio_filepath=self.audio_path,
+        if Path(filepath).suffix not in [".gif", ".webp"]:
+            return FFMpegWriterWithAudio(fps=self.config.framerate, audio_filepath=self.audio_path,
                                             extra_args=self.config.ffmpeg_options)
+        
+        if Path(filepath).suffix == ".webp":
+            if self.config.ffmpeg_options is not None:
+                self.config.ffmpeg_options = (
+                    ["-c:v", "webp", "-loop", "0", "-pix_fmt", "yuva420p"] + self.config.ffmpeg_options
+                )
+            else:
+                self.config.ffmpeg_options = ["-c:v", "webp", "-loop", "0", "-pix_fmt", "yuva420p"]
 
-        return writer
+        return FFMpegWriter(fps=self.config.framerate, extra_args=self.config.ffmpeg_options)
 
 
     def _initial_frame(self, ax: Axes, x_values: list[int]|np.ndarray, 
@@ -416,39 +414,41 @@ class AudioVisualizer():
         ax.set_ylim(0,1)
         ax.patch.set_alpha(0)
 
-        if animation_func == self._create_bar_graph_frame:
-            plt.axis("off")
-            plt.margins(x=0)
-            lim = ax.get_xlim() + ax.get_ylim()
-            ax.axis(lim)
-            
-            bar: Rectangle
-            bars = ax.bar(x_values, [1 for _ in x_values])
-
-            artists: list[AxesImage] = []
-            grad_init: np.ndarray = np.array([[[0,0,0,0]]])
-
-            # Keeping track of bar coordinates to update in animation.
-            self.coords: list[tuple[float]] = []
-
-            # Replace bars with color gradient image based on bar height.
-            for bar in bars:
-                bar.set_alpha(0)
-
-                x, y = bar.get_xy()
-                w, h = bar.get_width(), bar.get_height()
-                self.coords.append((x,w,y))
-
-                img = ax.imshow(grad_init, extent=[x, x + w, y, y + h], aspect="auto", zorder=10)
-                artists.append(img)
-            ax.set_xlim(1 - w/2, w/2 + self.config.bars)
-        elif animation_func == self._create_fft_frame:
+        if animation_func == self._create_fft_frame:
             ax.set_xlabel("Frequency (Hz)")
             ax.set_ylabel("Relative Amplitude")
             ax.patch.set_alpha(0)
             ax.set_xlim(x_values[0], x_values[-1])
 
             artists: list[Line2D] = ax.plot(x_values, [0 for _ in x_values])
+            return artists
+
+
+        plt.axis("off")
+        plt.margins(x=0)
+        lim = ax.get_xlim() + ax.get_ylim()
+        ax.axis(lim)
+        
+        bar: Rectangle
+        bars = ax.bar(x_values, [1 for _ in x_values])
+
+        artists: list[AxesImage] = []
+        grad_init: np.ndarray = np.array([[[0,0,0,0]]])
+
+        # Keeping track of bar coordinates to update in animation.
+        self.coords: list[tuple[float]] = []
+
+        # Replace bars with color gradient image based on bar height.
+        for bar in bars:
+            bar.set_alpha(0)
+
+            x, y = bar.get_xy()
+            w, h = bar.get_width(), bar.get_height()
+            self.coords.append((x,w,y))
+
+            img = ax.imshow(grad_init, extent=[x, x + w, y, y + h], aspect="auto", zorder=10)
+            artists.append(img)
+        ax.set_xlim(1 - w/2, w/2 + self.config.bars)
 
         return artists
 
@@ -487,55 +487,57 @@ class AudioVisualizer():
         
         artists: list[Artist] = self._initial_frame(ax, x_values, animation_func)
 
-        if (Path(filepath).suffix == ".gif" and 
+        if not (Path(filepath).suffix == ".gif" and 
             self.config.max_frames_per_gif and 
             y_values.shape[0] > self.config.max_frames_per_gif):
 
-            parts = int(y_values.shape[0] / self.config.max_frames_per_gif) + 1
-            y_values_list = np.array_split(y_values, parts)
+            print(f'Creating {filepath}...')
+            ani = FuncAnimation(fig, 
+                                partial(animation_func, artists=artists, y_values=y_values),
+                                frames = y_values.shape[0])
 
-            for i, y_values in enumerate(y_values_list):
+            ani.save(filepath, writer=writer, dpi=self.config.dpi,
+                    savefig_kwargs={"transparent": True})
 
-                # Potential issue: if using the gif parts with audio editing software in timelines with higher framerate,
-                # the last frame of the gif can be corrupted if the length of the y_values is odd. Tested with DaVinci Resolve, 60FPS.
-                # You can trim the last frame manually, but this can get lengthy. Unsure about this behaviour.
-                # Fix below works, but it affects the timing of the animation, with higher effect the more parts there are.
-                # Recommended to not use for large gifs, use a video file format instead.
-                # If you need transparency, set the background to a colour very different from the animation colours and remove in
-                # editing software.
-                
-                # Fix for timelines in video editing software that have a framerate of 60. Issue caused if array rows are odd.
-                # if y_values.shape[0] % 2:
-                #     y_values = np.append(y_values, y_values[-1:], axis=0)
-                
-                # print(y_values.shape[0])
-                
-                filepath_parts = list(Path(filepath).parts)
-                filename_parts = filepath_parts[-1].split(".")
-                filename_parts[-2] = f'{filename_parts[-2]}-part{i+1}'
-                filepath_parts[-1] = ".".join(filename_parts)
-                filepath_part = Path(*filepath_parts)
-
-                print(f'Creating {filepath_part}, {i+1}/{len(y_values_list)}...')
-                
-                ani = FuncAnimation(fig, 
-                            partial(animation_func, artists=artists, y_values=y_values), 
-                            frames = y_values.shape[0])
-
-                ani.save(filepath_part, writer=writer, dpi=self.config.dpi,
-                 savefig_kwargs={"transparent": True})
             print(f'Done.{" "*20}')
             plt.close()
             return
-        
-        print(f'Creating {filepath}...')
-        ani = FuncAnimation(fig, 
-                            partial(animation_func, artists=artists, y_values=y_values),
-                            frames = y_values.shape[0])
 
-        ani.save(filepath, writer=writer, dpi=self.config.dpi,
-                 savefig_kwargs={"transparent": True})
+        # Splitting gifs to parts.
+        parts = int(y_values.shape[0] / self.config.max_frames_per_gif) + 1
+        y_values_list = np.array_split(y_values, parts)
 
+        for i, y_values in enumerate(y_values_list):
+
+            # Potential issue: if using the gif parts with audio editing software in timelines with higher framerate,
+            # the last frame of the gif can be corrupted if the length of the y_values is odd. Tested with DaVinci Resolve, 60FPS.
+            # You can trim the last frame manually, but this can get lengthy. Unsure about this behaviour.
+            # Fix below works, but it affects the timing of the animation, with higher effect the more parts there are.
+            # Recommended to not use for large gifs, use a video file format instead.
+            # If you need transparency, set the background to a colour very different from the animation colours and remove in
+            # editing software.
+            
+            # Fix for timelines in video editing software that have a framerate of 60. Issue caused if array rows are odd.
+            # if y_values.shape[0] % 2:
+            #     y_values = np.append(y_values, y_values[-1:], axis=0)
+            
+            # print(y_values.shape[0])
+            
+            filepath_parts = list(Path(filepath).parts)
+            filename_parts = filepath_parts[-1].split(".")
+            filename_parts[-2] = f'{filename_parts[-2]}-part{i+1}'
+            filepath_parts[-1] = ".".join(filename_parts)
+            filepath_part = Path(*filepath_parts)
+
+            print(f'Creating {filepath_part}, {i+1}/{len(y_values_list)}...')
+            
+            ani = FuncAnimation(fig, 
+                        partial(animation_func, artists=artists, y_values=y_values), 
+                        frames = y_values.shape[0])
+
+            ani.save(filepath_part, writer=writer, dpi=self.config.dpi,
+                savefig_kwargs={"transparent": True})
+            
         print(f'Done.{" "*20}')
         plt.close()
         
