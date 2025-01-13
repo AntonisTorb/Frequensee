@@ -1,8 +1,10 @@
 from __future__ import annotations
 import argparse
 from pathlib import Path
+import sys
 
 from .audio_viz import AudioVisualizer
+from .boost_info import test_boost
 from .config import Config
 from .version import __version__
 
@@ -13,7 +15,7 @@ def main_cli():
     print(f'Frequensee v{__version__}. Use command `fqc -h` for a list of commands.')
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input_path", type=str, required=True,
+    parser.add_argument("-i", "--input_path", type=str, required=False,
                         help="Filepath to the audio file.")
     parser.add_argument("-r", "--framerate", type=int, required=False, default=60, 
                         help="Animation framerate (frames per second, default: 60). For GIFs maximum is 30, adjusted automatically.")
@@ -30,6 +32,9 @@ def main_cli():
     parser.add_argument("-lb", "--low_boost", type=str, required=False, default="0,0", 
                         help='''Boost low amplitude frequencies with the formula: Y = log(a*X+b)/log(a+b).
     Provided in the format "a,b", with a,b: floats greater or equal to 1, or both zero for no boost (default: "0,0")''')
+    parser.add_argument("-tb", "--test_boost", action="store_true", required=False,
+                        help='''Create a graph showing the output of the boost function with the provided parameters. 
+                        Required to pass the `a,b` parameters with the `-lb` option.''')
     parser.add_argument("-g", "--max_frames_per_gif", type=int, required=False, default=1000, 
                         help="Maximum frames per GIF. Due to high memory usage, please select according to your RAM size and framerate (Default: 1000).")
     parser.add_argument("-d", "--dpi", type=int, required=False, default=100, 
@@ -54,21 +59,10 @@ def main_cli():
     Includes audio filepath and framerate for which the data was created.''')
     parser.add_argument("-fft", "--animate_fft", action="store_true", required=False, 
                         help="If specified, creates an animation of the raw fft over time instead of the bars.")
-    parser.add_argument("-o", "--output_path", type=str,  required=True,
+    parser.add_argument("-o", "--output_path", type=str, required=False,
                         help="Path or filename of output file (including extension compatible with FFMPEG or json).")
     
     args = parser.parse_args()
-    
-    input_path: Path = Path(args.input_path)
-    if not input_path.exists():
-        raise FileNotFoundError("Error: Provided filepath does not exist.")
-    
-    output_path: Path = Path(args.output_path)
-    if "." not in output_path.name:
-        raise ValueError("Error: output filepath must end with filename including extension.")
-
-    for part in output_path.parts[:-1]:
-        Path(part).mkdir(exist_ok=True)
     
     options: dict[str, str|int|float|bool|None] = {   
         "framerate": args.framerate,
@@ -92,6 +86,27 @@ def main_cli():
         options["ffmpeg_options"] = None
 
     config = Config(options)
+
+    if args.test_boost:
+        if config.low_boost == (0,0):
+            raise ValueError("Error: Please provide valid parameters for the boost.")
+        test_boost(*config.low_boost)
+        sys.exit()
+
+    if not args.input_path:
+        raise ValueError("Error: Input path is required.")
+    if not args.output_path:
+        raise ValueError("Error: Output path is required.")
+            
+    input_path: Path = Path(args.input_path)
+    if not input_path.exists():
+        raise FileNotFoundError("Error: Provided filepath does not exist.")
+    
+    output_path: Path = Path(args.output_path)
+    if "." not in output_path.name:
+        raise ValueError("Error: output filepath must end with filename including extension.")
+    output_path.parent.mkdir(exist_ok=True, parents=True)
+
     viz = AudioVisualizer(config)
     viz.load(input_path)
 

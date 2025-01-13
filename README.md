@@ -221,6 +221,9 @@ fqc -h
     -lb LOW_BOOST, --low_boost LOW_BOOST
         Boost low amplitude frequencies with the formula: Y = log(a*X+b)/log(a+b). Provided in the format "a,b", with a,b: floats greater or equal to 1, or both zero for no boost (default: "0,0")
 
+    -tb, --test_boost
+        Create a graph showing the output of the boost function with the provided parameters. Required to pass the `a,b` parameters with the `-lb` option.
+
     -g MAX_FRAMES_PER_GIF, --max_frames_per_gif MAX_FRAMES_PER_GIF
         Maximum frames per GIF. Due to high memory usage, please select according to your RAM size and framerate (Default: 1000).
 

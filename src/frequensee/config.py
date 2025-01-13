@@ -19,7 +19,7 @@ class Config():
         \s*,?\s*                        # optional spaces, followed by optional comma, followed by optional spaces.
         (0|0\.\d{1,2}|1)?$              # A (0 - 1, optional)
         ''', re.VERBOSE)
-        self.boost_regex: re.Pattern = re.compile(r'(\d+\.?\d*)\s*,\s*(\d+\.?\d*)') # "float, float" with any spaces between floats and comma.
+        self.boost_regex: re.Pattern = re.compile(r'^(\d+\.?\d*)\s*,\s*(\d+\.?\d*)$') # "float, float" with any spaces between floats and comma.
         
         # Default values in the case of initialization without a provided or incomplete `options` dictionary.
 
@@ -76,7 +76,7 @@ class Config():
                 raise ValueError("Error: invalid low frequency boost input.")
             a, b = boost_match.groups()
             a, b = float(a), float(b)
-            if (a == 0) != (b == 0):
+            if (a == 0) != (b == 0) or a < 1 or b < 1:
                 raise ValueError("Error: invalid low frequency boost input, a and b must be greater or equal to 1, or both 0.")
             self.low_boost = (a,b)
         if "max_frames_per_gif" in options.keys():

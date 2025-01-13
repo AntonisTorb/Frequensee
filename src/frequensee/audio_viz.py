@@ -346,7 +346,7 @@ class AudioVisualizer():
 
         for bar_coords, img, h in zip(self.coords, artists, y_values[frame_number]):
             if self.config.bar_parts:
-                if h == 0:
+                if h <= 1 / self.config.bar_parts:
                     h = 1 / self.config.bar_parts
                 h = ceil(self.config.bar_parts * h) / self.config.bar_parts
                 grad = self._get_colour_gradient_parts(h)
