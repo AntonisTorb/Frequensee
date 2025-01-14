@@ -76,7 +76,7 @@ class Config():
                 raise ValueError("Error: invalid low frequency boost input.")
             a, b = boost_match.groups()
             a, b = float(a), float(b)
-            if (a == 0) != (b == 0) or a < 1 or b < 1:
+            if (a == 0) != (b == 0) or 0 < a < 1 or 0 < b < 1:
                 raise ValueError("Error: invalid low frequency boost input, a and b must be greater or equal to 1, or both 0.")
             self.low_boost = (a,b)
         if "max_frames_per_gif" in options.keys():
