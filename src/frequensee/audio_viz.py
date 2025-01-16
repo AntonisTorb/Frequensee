@@ -374,6 +374,9 @@ class AudioVisualizer():
             Appropriate writer initialized with options according to the output file format.
         '''
 
+        # from matplotlib.animation import PillowWriter
+        # return PillowWriter(fps=self.config.framerate)
+
         if Path(filepath).suffix not in [".gif", ".webp"]:
             return FFMpegWriterWithAudio(fps=self.config.framerate, audio_filepath=self.audio_path,
                                             extra_args=self.config.ffmpeg_options)
