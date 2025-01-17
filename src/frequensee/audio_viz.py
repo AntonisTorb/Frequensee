@@ -245,7 +245,7 @@ class AudioVisualizer():
         return grad
 
 
-    def _get_colour_gradient_parts(self, h: float) -> np.ndarray:
+    def _get_colour_gradient_parts(self, h: float, alpha_top: float) -> np.ndarray:
         '''
         Used by the `_create_bar_graph_frame` method to display a gradient bar image split in parts.
         Creates and returns a numpy array with the RGBA values for the image gradient.
@@ -284,10 +284,17 @@ class AudioVisualizer():
             ]] for i in reversed(range(int(self.config.bar_parts * h))) for _ in range(self.loop_range)
         ]
         # Alpha calculation: 1 only if i between lower and upper limits, else 0.
-        a = [[
+        # For top bar part, opacity based on height.
+        a = ([
+            [
+                [int((i > self.alpha_lower_limit) and (i < self.alpha_upper_limit)) * alpha_top]
+            ] for i in range(self.loop_range)
+        ] + 
+        [
+            [
                 [int((i > self.alpha_lower_limit) and (i < self.alpha_upper_limit))]
-            ] for _ in reversed(range(int(self.config.bar_parts * h))) for i in range(self.loop_range)
-        ]
+            ] for _ in reversed(range(int(self.config.bar_parts * h - 1))) for i in range(self.loop_range)
+        ])
 
         grad = np.concatenate([r, g, b, a], axis=2)
         # print(grad.shape)
@@ -346,10 +353,19 @@ class AudioVisualizer():
 
         for bar_coords, img, h in zip(self.coords, artists, y_values[frame_number]):
             if self.config.bar_parts:
+                # Minimum 1 bar part.
                 if h <= 1 / self.config.bar_parts:
                     h = 1 / self.config.bar_parts
+                
+                # Set top bar part alpha based on height.
+                alpha_top = (h % (1 / self.config.bar_parts)) * self.config.bar_parts
+                if alpha_top < 0.01:
+                    alpha_top = 1
+
+                # Normalize height so bar parts all have the same height.
                 h = ceil(self.config.bar_parts * h) / self.config.bar_parts
-                grad = self._get_colour_gradient_parts(h)
+
+                grad = self._get_colour_gradient_parts(h, alpha_top)
             else:
                 grad = self._get_colour_gradient_full(h)
             img.set_data(grad)
