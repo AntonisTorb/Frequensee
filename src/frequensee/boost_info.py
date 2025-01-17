@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.ticker import AutoMinorLocator, FormatStrFormatter
 import numpy as np
 
 
@@ -12,6 +13,14 @@ def test_boost(a: float, b: float) -> None:
     ax.set_ylim(0,1)
     ax.set_xlabel("Input Amplitude", fontsize = 18)
     ax.set_ylabel("Output Amplitude", fontsize = 18)
+    
+    ax.minorticks_on()
+    ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+    ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+    ax.xaxis.set_minor_formatter(FormatStrFormatter('%.1f'))
+    ax.yaxis.set_minor_formatter(FormatStrFormatter('%.1f'))
+
+    ax.grid(which="both")
     fig.patch.set_color((0.8,0.8,0.8))
     ax.patch.set_alpha(0)
     ax.set_aspect(1)
@@ -34,6 +43,8 @@ def test_boost(a: float, b: float) -> None:
 
 # import matplotlib.pyplot as plt
 # from matplotlib.animation import FuncAnimation, FFMpegWriter
+# from matplotlib.ticker import AutoMinorLocator, FormatStrFormatter
+
 # import numpy as np
 
 # image_size_pix = (800, 800)
@@ -48,6 +59,13 @@ def test_boost(a: float, b: float) -> None:
 # fig.patch.set_color((0.8,0.8,0.8))
 # ax.patch.set_alpha(0)
 # ax.set_aspect(1)
+
+# ax.minorticks_on()
+# ax.xaxis.set_minor_locator(AutoMinorLocator(2))
+# ax.yaxis.set_minor_locator(AutoMinorLocator(2))
+# ax.xaxis.set_minor_formatter(FormatStrFormatter('%.1f'))
+# ax.yaxis.set_minor_formatter(FormatStrFormatter('%.1f'))
+# ax.grid(which="both")
 
 # x_values = np.linspace(0,1,100)
 # ax.plot(x_values, x_values, linewidth=2)
@@ -65,8 +83,8 @@ def test_boost(a: float, b: float) -> None:
 # b_range = ([1 for _ in range(200)] + 
 #             [1 + i/50 for i in range(101)] + 
 #             [1 + i/50 for i in reversed(range(101))] + 
-#             [1 + i/10 for i in range(1, 101)] + 
-#             [1 + i/10 for i in reversed(range(1, 101))]
+#             [1 + i/50 for i in range(1, 101)] + 
+#             [1 + i/50 for i in reversed(range(1, 101))]
 #         )
 
 # values = [(a,b) for a,b in zip(a_range, b_range)]
