@@ -20,9 +20,9 @@ def main_cli():
     parser.add_argument("-r", "--framerate", type=int, required=False, default=60, 
                         help="Animation framerate (frames per second, default: 60). For GIFs maximum is 30, adjusted automatically.")
     parser.add_argument("-fw", "--fft_window_sec", type=float, required=False, default=0.25, 
-                        help="Window size for fft calculation (smaller -> more accurate, default: 0.25).")
+                        help="Window size for fft calculation (smaller -> more accurate, positive, default: 0.25).")
     parser.add_argument("-b", "--bars", type=int, required=False, default=20, 
-                        help="Amount of bars showing on graph (Default: 20).")
+                        help="Amount of bars showing on graph (non zero positive, default: 20).")
     parser.add_argument("-bp", "--bar_parts", type=int, required=False, default=0,
                         help="Amount of parts to split each bar to, with 0 being a gradient (Positive integer or 0, default: 0).")
     parser.add_argument("-pg", "--part_gap", type=float, required=False, default=0.2,
@@ -81,9 +81,6 @@ def main_cli():
         "bar_colour_top": args.bar_colour_top,
         "export_json": args.export_json
     }
-
-    if not options["ffmpeg_options"]:
-        options["ffmpeg_options"] = None
 
     config = Config(options)
 

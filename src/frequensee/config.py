@@ -57,23 +57,29 @@ class Config():
         if "framerate" in options.keys():
             self.framerate = options["framerate"]
         if "fft_window_sec" in options.keys():
+            if options["fft_window_sec"] < 0:
+                raise ValueError("Error: invalid value for fft window, please select a positive value or zero.")
             self.fft_window_sec = options["fft_window_sec"]
         if "bars" in options.keys():
+            if options["bars"] <= 0:
+                raise ValueError("Error: invalid value for bars, please select a positive value.")
             self.bars = options["bars"]
         if "bar_parts" in options.keys():
             if options["bar_parts"] < 0:
-                raise ValueError("Error: bar parts must be greater than 0.")
+                raise ValueError("Error: invalid value for bar parts, please select a positive value.")
             self.bar_parts = options["bar_parts"]
         if "part_gap" in options.keys():
             if options["part_gap"] < 0 or options["part_gap"] >= 1:
-                raise ValueError("Error: bar part gap must be between 0 and 1, excluding 1.")
+                raise ValueError("Error: invalid value for bar part gap, please select a value between 0 and 1, excluding 1.")
             self.part_gap = options["part_gap"]
         if "amplitude_threshold" in options.keys():
+            if options["amplitude_threshold"] < 0 or options["amplitude_threshold"] >= 1:
+                raise ValueError("Error: invalid value for amplitude threshold, please select a value between 0 and 1.")
             self.amplitude_threshold = options["amplitude_threshold"]
         if "low_boost" in options.keys():
             boost_match: re.Match = re.match(self.boost_regex, options["low_boost"].strip())
             if boost_match is None:
-                raise ValueError("Error: invalid low frequency boost input.")
+                raise ValueError("Error: invalid low frequency boost input. Please provide in format `a,b`.")
             a, b = boost_match.groups()
             a, b = float(a), float(b)
             if (a == 0) != (b == 0) or 0 < a < 1 or 0 < b < 1:
@@ -83,16 +89,18 @@ class Config():
             self.max_frames_per_gif = options["max_frames_per_gif"]
         if "dpi" in options.keys():
             if options["dpi"] <= 0:
-                raise ValueError("Error: dpi cannot be less or equal to 0.")
+                raise ValueError("Error: invalid value for dpi, please provide a positive value.")
             self.dpi = options["dpi"]
         if "width" in options.keys() and "height" in options.keys():
-            if options["width"] <= 0 or options["height"] <= 0:
-                raise ValueError("Error: Pixel dimensions cannot be less or equal to 0.")
+            if options["width"] <= 0:
+                raise ValueError("Error: Invalid value for width, please provide a positive value.")
+            if options["height"] <= 0:
+                raise ValueError("Error: Invalid value for height, please provide a positive value.")
             self.image_size_pix = (options["width"], options["height"])
         if "background" in options.keys():
             bg_match: re.Match = re.match(self.rgba_regex, options["background"].strip())
             if bg_match is None:
-                raise ValueError("Error: invalid backround colour input.")
+                raise ValueError("Error: invalid backround colour input, please provide in the format `r,g,b,a`.")
             rgba: tuple[str|None] = bg_match.groups()
             if rgba[-1] is None:
                 rgba = rgba[:-1]
@@ -100,7 +108,7 @@ class Config():
             else:
                 self.background = tuple([int(i) / 255 for i in rgba[:-1]] + [float(rgba[-1])])
         if "ffmpeg_options" in options.keys():
-            if options["ffmpeg_options"] is None:
+            if not options["ffmpeg_options"]:
                 self.ffmpeg_options = None
             else:
                 self.ffmpeg_options = options["ffmpeg_options"].split()
@@ -108,13 +116,13 @@ class Config():
         if "bar_colour_bottom" in options.keys():
             bar_bottom_match: re.Match = re.match(self.rgba_regex, options["bar_colour_bottom"].strip())
             if bar_bottom_match is None:
-                raise ValueError("Error: invalid `bar_colour_bottom` input.")
+                raise ValueError("Error: invalid `bar_colour_bottom` input, please provide in the format `r,g,b`.")
             rgb: tuple[str] = bar_bottom_match.groups()[:3]
             self.bar_colour_bottom = tuple([int(i) / 255 for i in rgb])
         if "bar_colour_top" in options.keys():
             bar_top_match: re.Match = re.match(self.rgba_regex, options["bar_colour_top"].strip())
             if bar_top_match is None:
-                raise ValueError("Error: invalid `bar_colour_top` input.")
+                raise ValueError("Error: invalid `bar_colour_top` input, please provide in the format `r,g,b`.")
             rgb: tuple[str] = bar_top_match.groups()[:3]
             self.bar_colour_top = tuple([int(i) / 255 for i in rgb])
         if "export_json" in options.keys():
